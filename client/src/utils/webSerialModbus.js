@@ -93,7 +93,7 @@ export function buildWriteMultipleRequest(slaveId, address, values) {
 }
 
 // ── Web Serial Connection Manager ───────────────────────────────────────────
-export async function requestAndOpenPort(baudRate = 19200, parity = 'even', stopBits = 1, dataBits = 8) {
+export async function requestAndOpenPort(baudRate = 19200, parity = 'even', stopBits = 1, dataBits = 8, existingPort = null) {
   if (typeof navigator === 'undefined' || !navigator.serial) {
     throw new Error('Web Serial API is not supported in this browser.');
   }
@@ -101,7 +101,11 @@ export async function requestAndOpenPort(baudRate = 19200, parity = 'even', stop
   // Close any existing open port first
   await closeLocalPort();
 
-  activePort = await navigator.serial.requestPort();
+  if (existingPort) {
+    activePort = existingPort;
+  } else {
+    activePort = await navigator.serial.requestPort();
+  }
 
   // Web Serial API option names
   // parity: "none" | "even" | "odd"
