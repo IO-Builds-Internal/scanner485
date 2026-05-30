@@ -65,6 +65,15 @@ export default function App() {
     scanRegistersRef.current = scanRegisters;
   }, [scanRegisters]);
 
+  // ── Log ────────────────────────────────────────────────────────────────────
+  const [logEntries, setLogEntries] = useState([]);
+  const addLog = useCallback((msg, level = 'info') => {
+    setLogEntries(prev => {
+      const next = [...prev, { ts: now(), msg, level }];
+      return next.length > LOG_MAX ? next.slice(-LOG_MAX) : next;
+    });
+  }, []);
+
   // ── Session Report Compiler & Exporter ──────────────────────────────────────
   const handleExportSession = useCallback(() => {
     const sessionReport = {
@@ -97,15 +106,6 @@ export default function App() {
     URL.revokeObjectURL(url);
     addLog('Session report document exported successfully.', 'ok');
   }, [portStatus, scanDevice, readings, logEntries, addLog]);
-
-  // ── Log ────────────────────────────────────────────────────────────────────
-  const [logEntries, setLogEntries] = useState([]);
-  const addLog = useCallback((msg, level = 'info') => {
-    setLogEntries(prev => {
-      const next = [...prev, { ts: now(), msg, level }];
-      return next.length > LOG_MAX ? next.slice(-LOG_MAX) : next;
-    });
-  }, []);
 
   // ── Admin state ────────────────────────────────────────────────────────────
   const [adminDevice, setAdminDevice] = useState(null);
