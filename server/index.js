@@ -31,6 +31,20 @@ app.use('/api', apiRouter);
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
+// Serving static assets in production
+if (NODE_ENV === 'production') {
+  const clientDist = join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  // Fallback to React index.html for unmatched path routes
+  app.get('*', (req, res) => {
+    // Avoid intercepting API or health requests
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(join(clientDist, 'index.html'));
+  });
+}
+
 // ── HTTP + Socket.io ─────────────────────────────────────────────────────────
 const httpServer = createServer(app);
 
