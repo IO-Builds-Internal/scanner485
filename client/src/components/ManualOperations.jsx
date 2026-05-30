@@ -10,7 +10,16 @@ const DATA_TYPES = [
   { value: 'raw', label: 'Raw Words (comma-separated list for writing)' },
 ];
 
-export default function ManualOperations({ isConnected }) {
+import {
+  readLocalHoldingRegisters,
+  readLocalInputRegisters,
+  writeLocalSingleRegister,
+  writeLocalMultipleRegisters,
+  decodeWords,
+  encodeWords
+} from '../utils/webSerialModbus';
+
+export default function ManualOperations({ portStatus }) {
   const { emit, on } = useSocket();
 
   const [fc, setFc] = useState(3); // 3=Read Holding, 4=Read Input, 6=Write Single, 16=Write Multiple
@@ -24,8 +33,13 @@ export default function ManualOperations({ isConnected }) {
   const [consoleLogs, setConsoleLogs] = useState([]);
   const logEndRef = useRef(null);
 
+  const isConnected = portStatus?.status === 'ok';
+  const isLocalMode = portStatus?.mode === 'local';
+
+  // Handle remote server-side manual commands
   useEffect(() => {
     const unsub = on('modbus:manual:result', (data) => {
+      if (isLocalMode) return; // ignore socket results when in local mode
       setSending(false);
       setConsoleLogs(prev => {
         let text = '';
@@ -44,7 +58,7 @@ export default function ManualOperations({ isConnected }) {
       });
     });
     return unsub;
-  }, [on, address, count, dataType]);
+  }, [on, address, count, dataType, isLocalMode]);
 
   useEffect(() => {
     if (logEndRef.current) {
@@ -52,24 +66,82 @@ export default function ManualOperations({ isConnected }) {
     }
   }, [consoleLogs]);
 
-  const handleSendCommand = () => {
+  const handleSendCommand = async () => {
     if (!isConnected) return;
     setSending(true);
 
-    const payload = {
-      fc: Number(fc),
-      address: Number(address),
-      dataType,
-      slaveId: Number(slaveId),
-    };
+    if (isLocalMode) {
+      // ── Native Browser-Side Web Serial Execution ─────────────────────────
+      if (fc === 3 || fc === 4) {
+        try {
+          let rawWords;
+          if (fc === 4) {
+            rawWords = await readLocalInputRegisters(slaveId, address, count);
+          } else {
+            rawWords = await readLocalHoldingRegisters(slaveId, address, count);
+          }
+          let decoded = null;
+          try {
+            decoded = decodeWords(rawWords, dataType);
+          } catch (e) {}
 
-    if (fc === 3 || fc === 4) {
-      payload.count = Number(count);
+          const ts = new Date().toLocaleTimeString();
+          const rawHex = rawWords.map(x => '0x' + x.toString(16).toUpperCase().padStart(4, '0')).join(' ');
+          const text = `[${ts}] SUCCESS: Read Address ${address} (Count ${count}). Raw: [ ${rawHex} ]. Decoded (${dataType}): ${decoded !== null ? decoded.toFixed(4) : 'N/A'}`;
+          setConsoleLogs(prev => [...prev, { text, type: 'ok' }]);
+        } catch (err) {
+          const text = `[${new Date().toLocaleTimeString()}] ERROR: ${err.message}`;
+          setConsoleLogs(prev => [...prev, { text, type: 'error' }]);
+        } finally {
+          setSending(false);
+        }
+      } else if (fc === 6 || fc === 16) {
+        try {
+          let wordsToWrite;
+          if (dataType === 'raw') {
+            wordsToWrite = String(writeValue).split(',').map(x => parseInt(x.trim(), 10)).filter(x => !isNaN(x));
+          } else {
+            wordsToWrite = encodeWords(writeValue, dataType);
+          }
+
+          if (wordsToWrite.length === 0) {
+            throw new Error('No valid values to write.');
+          }
+
+          if (wordsToWrite.length === 1 && fc === 6) {
+            await writeLocalSingleRegister(slaveId, address, wordsToWrite[0]);
+          } else {
+            await writeLocalMultipleRegisters(slaveId, address, wordsToWrite);
+          }
+
+          const ts = new Date().toLocaleTimeString();
+          const wroteHex = wordsToWrite.map(x => '0x' + x.toString(16).toUpperCase().padStart(4, '0')).join(' ');
+          const text = `[${ts}] SUCCESS: Wrote to Address ${address}. Raw written: [ ${wroteHex} ].`;
+          setConsoleLogs(prev => [...prev, { text, type: 'ok' }]);
+        } catch (err) {
+          const text = `[${new Date().toLocaleTimeString()}] ERROR: ${err.message}`;
+          setConsoleLogs(prev => [...prev, { text, type: 'error' }]);
+        } finally {
+          setSending(false);
+        }
+      }
     } else {
-      payload.value = writeValue;
-    }
+      // ── Server-Side Socket Emission ────────────────────────────────────────
+      const payload = {
+        fc: Number(fc),
+        address: Number(address),
+        dataType,
+        slaveId: Number(slaveId),
+      };
 
-    emit('modbus:manual', payload);
+      if (fc === 3 || fc === 4) {
+        payload.count = Number(count);
+      } else {
+        payload.value = writeValue;
+      }
+
+      emit('modbus:manual', payload);
+    }
   };
 
   const isWrite = fc === 6 || fc === 16;

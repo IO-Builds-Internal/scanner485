@@ -9,7 +9,7 @@ const INTERVALS = [
   { label: '10 s',  ms: 10000},
 ];
 
-export default function DevicePicker({ db, portConnected, onScanChange }) {
+export default function DevicePicker({ db, portStatus, onScanChange }) {
   const { emit, on } = useSocket();
 
   const [devices,          setDevices]         = useState([]);
@@ -17,6 +17,9 @@ export default function DevicePicker({ db, portConnected, onScanChange }) {
   const [slaveId,          setSlaveId]          = useState(1);
   const [intervalMs,       setIntervalMs]       = useState(1000);
   const [scanning,         setScanning]         = useState(false);
+
+  const isPortConnected = portStatus?.status === 'ok';
+  const isLocalMode = portStatus?.mode === 'local';
 
   const loadDevices = () => {
     if (!db.ready) return;
@@ -56,25 +59,37 @@ export default function DevicePicker({ db, portConnected, onScanChange }) {
       alert('No registers defined for this device.\nGo to /#admin to add registers.');
       return;
     }
-    emit('scan:start', {
-      registers: registers.map(r => ({
-        id:            r.id,
-        address:       r.address,
-        function_code: r.function_code || 3,
-        label:         r.label,
-        data_type:     r.data_type || 'float32_be',
-        scale:         r.scale ?? 1.0,
-        unit:          r.unit || '',
-        group_name:    r.group_name || '',
-      })),
-      intervalMs,
-    });
-    setScanning(true);
-    onScanChange(true, selectedDevice, registers);
+
+    const regPayload = registers.map(r => ({
+      id:            r.id,
+      address:       r.address,
+      function_code: r.function_code || 3,
+      label:         r.label,
+      data_type:     r.data_type || 'float32_be',
+      scale:         r.scale ?? 1.0,
+      unit:          r.unit || '',
+      group_name:    r.group_name || '',
+    }));
+
+    if (isLocalMode) {
+      // Direct browser-side scanning, update parents with interval
+      setScanning(true);
+      onScanChange(true, selectedDevice, regPayload, intervalMs);
+    } else {
+      // Remote server-side scanning
+      emit('scan:start', {
+        registers: regPayload,
+        intervalMs,
+      });
+      setScanning(true);
+      onScanChange(true, selectedDevice, regPayload, intervalMs);
+    }
   };
 
   const handleStop = () => {
-    emit('scan:stop');
+    if (!isLocalMode) {
+      emit('scan:stop');
+    }
     setScanning(false);
     onScanChange(false, null, null);
   };
@@ -98,7 +113,7 @@ export default function DevicePicker({ db, portConnected, onScanChange }) {
       </div>
 
       <div className="panel-body">
-        {!portConnected && (
+        {!isPortConnected && (
           <div className="status-strip warn" style={{ marginBottom: 10 }}>
             <span className="indicator">⚠</span> Connect a serial port first (see above).
           </div>
@@ -166,7 +181,7 @@ export default function DevicePicker({ db, portConnected, onScanChange }) {
               <button
                 className="btn btn-primary"
                 onClick={handleStart}
-                disabled={!portConnected || !selectedDevice || devices.length === 0}
+                disabled={!isPortConnected || !selectedDevice || devices.length === 0}
               >
                 ▶ Start Scan
               </button>

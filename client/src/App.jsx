@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDb } from './db/useDb';
 import { useSocket } from './hooks/useSocket';
 import PortSelector from './components/PortSelector';
+import {
+  readLocalHoldingRegisters,
+  readLocalInputRegisters,
+  mapLocalReadings,
+  groupIntoBlocks
+} from './utils/webSerialModbus';
 import DevicePicker from './components/DevicePicker';
 import RegisterTable from './components/RegisterTable';
 import LogPanel from './components/LogPanel';
@@ -176,10 +182,15 @@ export default function App() {
     }
   }, [addLog, addToast]);
 
-  const handleScanChange = useCallback((isScanning, device, registers) => {
+  const [scanIntervalMs, setScanIntervalMs] = useState(1000);
+
+  const handleScanChange = useCallback((isScanning, device, registers, intervalMs) => {
     setScanning(isScanning);
     setScanDevice(device);
     setScanRegisters(registers ?? []);
+    if (intervalMs) {
+      setScanIntervalMs(intervalMs);
+    }
     if (isScanning) {
       addLog(`Scan started — ${device?.name}, ${registers?.length} registers`, 'ok');
     } else {
@@ -187,6 +198,81 @@ export default function App() {
       setReadings(new Map());
     }
   }, [addLog]);
+
+  // ── Local Web Serial Scanning Loop ──────────────────────────────────────────
+  useEffect(() => {
+    if (!scanning || portStatus?.mode !== 'local' || !scanRegisters.length) return;
+
+    let active = true;
+    let timerId = null;
+
+    const runPoll = async () => {
+      const allReadings = [];
+      const blocks = groupIntoBlocks(scanRegisters);
+      const slaveId = portStatus.slaveId || 1;
+
+      for (const block of blocks) {
+        if (!active) return;
+        try {
+          let rawWords;
+          if (block.fc === 4) {
+            rawWords = await readLocalInputRegisters(slaveId, block.startAddress, block.count);
+          } else {
+            rawWords = await readLocalHoldingRegisters(slaveId, block.startAddress, block.count);
+          }
+
+          const readings = mapLocalReadings(rawWords, block.startAddress, block.registers);
+          allReadings.push(...readings);
+        } catch (err) {
+          console.error('[local scan] error:', err.message);
+          addLog(`FC${block.fc} read at address ${block.startAddress} error: ${err.message}`, 'err');
+          addToast(`Read Error — Address ${block.startAddress}: ${err.message}`, 'error');
+        }
+      }
+
+      if (allReadings.length > 0 && active) {
+        // Update readings map
+        setReadings(prev => {
+          const next = new Map(prev);
+          for (const item of allReadings) {
+            const ex = next.get(item.registerId) ?? { history: [] };
+            const history = [...ex.history, item.value].slice(-SPARKLINE_MAX);
+            next.set(item.registerId, { ...item, history });
+          }
+          return next;
+        });
+
+        // Update Live Feed entries
+        setFeedEntries(prev => {
+          const timestamp = new Date().toLocaleTimeString();
+          const newEntries = allReadings.map(item => {
+            const def = scanRegistersRef.current.find(r => r.id === item.registerId);
+            return {
+              ts: timestamp,
+              label: item.label,
+              address: def ? def.address : '—',
+              value: item.value,
+              unit: item.unit
+            };
+          });
+          const next = [...prev, ...newEntries];
+          return next.length > 5000 ? next.slice(-5000) : next;
+        });
+      }
+
+      if (active) {
+        timerId = setTimeout(runPoll, scanIntervalMs);
+      }
+    };
+
+    // Trigger first poll
+    runPoll();
+
+    return () => {
+      active = false;
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [scanning, portStatus, scanRegisters, scanIntervalMs, addLog, addToast]);
 
   const handleLogout = () => {
     clearAdminAuth();
@@ -345,7 +431,7 @@ export default function App() {
           {/* Row 1: Connection + Device controls */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, flexShrink: 0 }}>
             <PortSelector portStatus={portStatus} onStatusChange={handlePortStatus} />
-            <DevicePicker db={db} portConnected={isConnected} onScanChange={handleScanChange} />
+            <DevicePicker db={db} portStatus={portStatus} onScanChange={handleScanChange} />
           </div>
 
           {/* Row 2: Tab Bar + Component */}
@@ -380,7 +466,7 @@ export default function App() {
               <LiveDataFeed feedEntries={feedEntries} onClear={() => setFeedEntries([])} />
             )}
             {activeTab === 'manual' && (
-              <ManualOperations isConnected={isConnected} />
+              <ManualOperations portStatus={portStatus} />
             )}
           </div>
 
