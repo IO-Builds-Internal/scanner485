@@ -91,7 +91,8 @@ export function useDb() {
         // delete the old EM6400NG entry so it gets cleanly re-seeded with correct registers.
         let hasOldRegs = false;
         try {
-          const stmtCheck = db.prepare("SELECT id FROM registers WHERE address = 3901 LIMIT 1");
+          // Check if database contains the old incorrect seeds (address 3901 OR address 3000 mapped to 'Current A')
+          const stmtCheck = db.prepare("SELECT id FROM registers WHERE address = 3901 OR (address = 3000 AND label = 'Current A') LIMIT 1");
           if (stmtCheck.step()) {
             hasOldRegs = true;
           }

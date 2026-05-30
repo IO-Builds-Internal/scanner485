@@ -35,6 +35,13 @@ export default function App() {
   const { on, emit, connected } = useSocket();
   const hash = useHashRoute();
 
+  // Automatic redirect if user types standard '/admin' in URL bar instead of '/#admin'
+  useEffect(() => {
+    if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
+      window.location.replace('/#admin');
+    }
+  }, []);
+
   const isAdmin = hash === '#admin';
 
   // ── Auth state ─────────────────────────────────────────────────────────────
