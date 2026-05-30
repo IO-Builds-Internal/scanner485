@@ -49,6 +49,33 @@ export default function PortSelector({ portStatus, onStatusChange }) {
     loadPorts();
   }, []);
 
+  // Listen for physical USB connection/disconnection events natively in real-time
+  useEffect(() => {
+    if (!hasWebSerial) return;
+
+    const handleDisconnect = async (event) => {
+      console.log('[web serial] physical disconnect event fired for port:', event.target);
+      // Close the active Web Serial port connection
+      await closeLocalPort();
+      onStatusChange({ status: 'disconnected' });
+      // Refresh authorized ports dropdown list
+      loadPorts();
+    };
+
+    const handleConnect = () => {
+      // Refresh authorized ports list when a new device is plugged in
+      loadPorts();
+    };
+
+    navigator.serial.addEventListener('disconnect', handleDisconnect);
+    navigator.serial.addEventListener('connect', handleConnect);
+
+    return () => {
+      navigator.serial.removeEventListener('disconnect', handleDisconnect);
+      navigator.serial.removeEventListener('connect', handleConnect);
+    };
+  }, [hasWebSerial, onStatusChange]);
+
   const handleAuthorizeNew = async () => {
     setDetectError('');
     try {
