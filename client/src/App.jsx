@@ -10,6 +10,7 @@ import ManualOperations from './components/ManualOperations';
 import AdminLogin, { isAdminAuthed, clearAdminAuth } from './components/AdminLogin';
 import DeviceAdmin from './components/admin/DeviceAdmin';
 import RegisterAdmin from './components/admin/RegisterAdmin';
+import SessionReviewer from './components/admin/SessionReviewer';
 
 const SPARKLINE_MAX = 60;
 const LOG_MAX = 300;
@@ -56,11 +57,46 @@ export default function App() {
   
   const [activeTab,     setActiveTab]     = useState('values'); // 'values' | 'feed' | 'manual'
   const [feedEntries,   setFeedEntries]   = useState([]);
+  
+  const [adminTab,      setAdminTab]      = useState('registry'); // 'registry' | 'reviewer'
 
   const scanRegistersRef = useRef([]);
   useEffect(() => {
     scanRegistersRef.current = scanRegisters;
   }, [scanRegisters]);
+
+  // ── Session Report Compiler & Exporter ──────────────────────────────────────
+  const handleExportSession = useCallback(() => {
+    const sessionReport = {
+      metadata: {
+        generator: 'scanner485',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+      },
+      connection: {
+        port: portStatus?.port || 'N/A',
+        baudRate: portStatus?.baudRate || 19200,
+        parity: portStatus?.parity || 'even',
+        stopBits: portStatus?.stopBits || 1,
+        dataBits: portStatus?.dataBits || 8,
+      },
+      device: {
+        name: scanDevice?.name || 'Generic Device',
+        manufacturer: scanDevice?.manufacturer || 'Unknown',
+      },
+      readings: Array.from(readings.values()),
+      logs: logEntries,
+    };
+
+    const blob = new Blob([JSON.stringify(sessionReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scanner485-session-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('Session report document exported successfully.', 'ok');
+  }, [portStatus, scanDevice, readings, logEntries, addLog]);
 
   // ── Log ────────────────────────────────────────────────────────────────────
   const [logEntries, setLogEntries] = useState([]);
@@ -196,6 +232,18 @@ export default function App() {
           </div>
         )}
 
+        {/* Export Session button (only when active session has feed entries) */}
+        {feedEntries.length > 0 && (
+          <button
+            onClick={handleExportSession}
+            className="btn btn-success btn-sm"
+            style={{ marginRight: 12, height: 24, fontSize: 11 }}
+            title="Export and download complete session diagnostics report"
+          >
+            📥 Export Session
+          </button>
+        )}
+
         {/* Status pill */}
         <div className="header-status-pill">
           <span className={`dot ${dotClass}`} />
@@ -228,40 +276,64 @@ export default function App() {
         /* ── ADMIN VIEW ───────────────────────────────────────────────── */
         adminAuthed ? (
           <div className="app-body" style={{ overflow: 'hidden' }}>
-            <div style={{ marginBottom: 4 }}>
+            {/* Admin Controls Panel with Tab selectors */}
+            <div style={{ marginBottom: 4, flexShrink: 0 }}>
               <div className="panel">
-                <div className="panel-header">
-                  <span className="panel-title">Device Registry — Admin</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    Data stored in your browser (sql.js / localStorage). Changes apply immediately.
-                  </span>
+                <div className="panel-header" style={{ justifyContent: 'space-between', padding: '6px 12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span className="panel-title">Admin Diagnostic Dashboard</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      Manage hardware device maps or upload & inspect diagnostic session documents
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      className={`btn ${adminTab === 'registry' ? 'btn-primary' : 'btn-default'} btn-sm`}
+                      onClick={() => setAdminTab('registry')}
+                    >
+                      📁 Device Registry
+                    </button>
+                    <button
+                      className={`btn ${adminTab === 'reviewer' ? 'btn-primary' : 'btn-default'} btn-sm`}
+                      onClick={() => setAdminTab('reviewer')}
+                    >
+                      🔍 Session Reviewer
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="admin-wrap">
-              {/* Left — device list */}
-              <div className="panel" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                <div className="panel-header">
-                  <span className="panel-title">Devices</span>
+            {/* Tab Content rendering */}
+            {adminTab === 'registry' ? (
+              <div className="admin-wrap" style={{ flex: 1, minHeight: 0 }}>
+                {/* Left — device list */}
+                <div className="panel" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                  <div className="panel-header">
+                    <span className="panel-title">Devices</span>
+                  </div>
+                  <DeviceAdmin
+                    db={db}
+                    selectedDeviceId={adminDevice?.id}
+                    onDeviceSelect={setAdminDevice}
+                  />
                 </div>
-                <DeviceAdmin
-                  db={db}
-                  selectedDeviceId={adminDevice?.id}
-                  onDeviceSelect={setAdminDevice}
-                />
-              </div>
 
-              {/* Right — register map */}
-              <div className="panel" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                <div className="panel-header">
-                  <span className="panel-title">
-                    Registers{adminDevice ? ` — ${adminDevice.name}` : ''}
-                  </span>
+                {/* Right — register map */}
+                <div className="panel" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                  <div className="panel-header">
+                    <span className="panel-title">
+                      Registers{adminDevice ? ` — ${adminDevice.name}` : ''}
+                    </span>
+                  </div>
+                  <RegisterAdmin db={db} device={adminDevice} />
                 </div>
-                <RegisterAdmin db={db} device={adminDevice} />
               </div>
-            </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }} className="panel">
+                <SessionReviewer />
+              </div>
+            )}
           </div>
         ) : (
           /* ── ADMIN LOGIN ──────────────────────────────────────────────── */
