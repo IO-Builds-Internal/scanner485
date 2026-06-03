@@ -1,0 +1,41 @@
+{
+  "device": {
+    "name": "M1M12",
+    "manufacturer": "ABB",
+    "slave_id": 1,
+    "baud_rate": 9600,
+    "parity": "even",
+    "stop_bits": 1,
+    "data_bits": 8
+  },
+  "registers": [
+    { "address": 100, "label": "Watts Total", "data_type": "float32_be", "unit": "W", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 1 },
+    { "address": 102, "label": "Watts L1", "data_type": "float32_be", "unit": "W", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 2 },
+    { "address": 104, "label": "Watts L2", "data_type": "float32_be", "unit": "W", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 3 },
+    { "address": 106, "label": "Watts L3", "data_type": "float32_be", "unit": "W", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 4 },
+    { "address": 116, "label": "PF Ave. (Inst.)", "data_type": "float32_be", "unit": "", "group_name": "Power Factor", "function_code": 3, "scale": 1.0, "display_order": 5 },
+    { "address": 118, "label": "PF L1 phase", "data_type": "float32_be", "unit": "", "group_name": "Power Factor", "function_code": 3, "scale": 1.0, "display_order": 6 },
+    { "address": 120, "label": "PF L2 phase", "data_type": "float32_be", "unit": "", "group_name": "Power Factor", "function_code": 3, "scale": 1.0, "display_order": 7 },
+    { "address": 122, "label": "PF L3 phase", "data_type": "float32_be", "unit": "", "group_name": "Power Factor", "function_code": 3, "scale": 1.0, "display_order": 8 },
+    { "address": 124, "label": "VA total", "data_type": "float32_be", "unit": "VA", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 9 },
+    { "address": 126, "label": "VA L1 phase", "data_type": "float32_be", "unit": "VA", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 10 },
+    { "address": 128, "label": "VA L2 phase", "data_type": "float32_be", "unit": "VA", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 11 },
+    { "address": 130, "label": "VA L3 phase", "data_type": "float32_be", "unit": "VA", "group_name": "Power", "function_code": 3, "scale": 1.0, "display_order": 12 },
+    { "address": 132, "label": "VLL average", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 13 },
+    { "address": 134, "label": "V L12 line", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 14 },
+    { "address": 136, "label": "V L23 line", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 15 },
+    { "address": 138, "label": "V L31 line", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 16 },
+    { "address": 140, "label": "VLN average", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 17 },
+    { "address": 142, "label": "V L1 phase", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 18 },
+    { "address": 144, "label": "V L2 phase", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 19 },
+    { "address": 146, "label": "V L3 phase", "data_type": "float32_be", "unit": "V", "group_name": "Voltage", "function_code": 3, "scale": 1.0, "display_order": 20 },
+    { "address": 148, "label": "Current Total", "data_type": "float32_be", "unit": "A", "group_name": "Current", "function_code": 3, "scale": 1.0, "display_order": 21 },
+    { "address": 150, "label": "Current L1 phase", "data_type": "float32_be", "unit": "A", "group_name": "Current", "function_code": 3, "scale": 1.0, "display_order": 22 },
+    { "address": 152, "label": "Current L2 phase", "data_type": "float32_be", "unit": "A", "group_name": "Current", "function_code": 3, "scale": 1.0, "display_order": 23 },
+    { "address": 154, "label": "Current L3 phase", "data_type": "float32_be", "unit": "A", "group_name": "Current", "function_code": 3, "scale": 1.0, "display_order": 24 },
+    { "address": 156, "label": "Frequency", "data_type": "float32_be", "unit": "Hz", "group_name": "Frequency", "function_code": 3, "scale": 1.0, "display_order": 25 },
+    { "address": 158, "label": "Wh Received", "data_type": "float32_be", "unit": "Wh", "group_name": "Energy", "function_code": 3, "scale": 1.0, "display_order": 26 },
+    { "address": 160, "label": "VAh Received", "data_type": "float32_be", "unit": "VAh", "group_name": "Energy", "function_code": 3, "scale": 1.0, "display_order": 27 },
+    { "address": 216, "label": "Load Hours Received", "data_type": "uint32_be", "unit": "h", "group_name": "Time", "function_code": 3, "scale": 1.0, "display_order": 28 }
+  ]
+}

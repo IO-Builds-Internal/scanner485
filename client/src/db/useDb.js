@@ -108,16 +108,19 @@ export function useDb() {
           }
         }
 
-        // Auto-seed EM6400NG if devices table is empty
-        const stmt = db.prepare('SELECT COUNT(*) as cnt FROM devices');
-        stmt.step();
-        const { cnt } = stmt.getAsObject();
-        stmt.free();
+        // Auto-seed EM6400NG and M1M12 devices if they don't exist
+        const checkDevice = (name) => {
+          const stmtCheck = db.prepare('SELECT COUNT(*) as cnt FROM devices WHERE name = ?');
+          stmtCheck.bind([name]);
+          stmtCheck.step();
+          const { cnt } = stmtCheck.getAsObject();
+          stmtCheck.free();
+          return cnt > 0;
+        };
 
-        if (cnt === 0) {
-          console.log('[db] No devices found in DB. Auto-seeding EM6400NG device...');
+        const seedDeviceByName = async (name) => {
           try {
-            const res = await fetch('/api/seed/em6400ng');
+            const res = await fetch(`/api/seed/${name.toLowerCase()}`);
             if (res.ok) {
               const seed = await res.json();
               const { device, registers } = seed;
@@ -147,17 +150,33 @@ export function useDb() {
                      reg.scale, reg.unit, reg.group_name, reg.display_order ?? i]
                   );
                 }
-                
-                // Export and save immediately
-                const data = db.export();
-                const b64 = btoa(String.fromCharCode(...data));
-                localStorage.setItem(DB_KEY, b64);
-                console.log('[db] Auto-seeded EM6400NG successfully.');
+                console.log(`[db] Auto-seeded ${device.name} successfully.`);
+                return true;
               }
             }
           } catch (err) {
-            console.error('[db] Auto-seeding failed:', err);
+            console.error(`[db] Auto-seeding failed for ${name}:`, err);
           }
+          return false;
+        };
+
+        let seededAny = false;
+        if (!checkDevice('EM6400NG')) {
+          console.log('[db] EM6400NG not found in DB. Seeding...');
+          const ok = await seedDeviceByName('em6400ng');
+          if (ok) seededAny = true;
+        }
+        if (!checkDevice('M1M12')) {
+          console.log('[db] M1M12 not found in DB. Seeding...');
+          const ok = await seedDeviceByName('m1m12');
+          if (ok) seededAny = true;
+        }
+
+        if (seededAny) {
+          // Export and save immediately
+          const data = db.export();
+          const b64 = btoa(String.fromCharCode(...data));
+          localStorage.setItem(DB_KEY, b64);
         }
 
         setReady(true);
@@ -274,7 +293,36 @@ export function useDb() {
     return deviceId;
   }, [exec, query]);
 
-  return { ready, error, exec, query, insert, exportDb, importDb, seedEm6400ng, pruneScanLog, db: dbRef };
+  // ── Convenience: seed M1M12 ───────────────────────────────────────────
+  const seedM1m12 = useCallback(async () => {
+    const res = await fetch('/api/seed/m1m12');
+    if (!res.ok) throw new Error('Failed to fetch seed data');
+    const seed = await res.json();
+
+    const { device, registers } = seed;
+
+    // Upsert device
+    exec(
+      `INSERT INTO devices (name, manufacturer, slave_id, baud_rate, parity, stop_bits, data_bits)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [device.name, device.manufacturer, device.slave_id, device.baud_rate,
+       device.parity, device.stop_bits, device.data_bits]
+    );
+    const rows = query('SELECT id FROM devices WHERE name = ?', [device.name]);
+    const deviceId = rows[rows.length - 1].id;
+
+    for (const [i, reg] of registers.entries()) {
+      exec(
+        `INSERT INTO registers (device_id, address, function_code, label, data_type, scale, unit, group_name, display_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [deviceId, reg.address, reg.function_code, reg.label, reg.data_type,
+         reg.scale, reg.unit, reg.group_name, reg.display_order ?? i]
+      );
+    }
+    return deviceId;
+  }, [exec, query]);
+
+  return { ready, error, exec, query, insert, exportDb, importDb, seedEm6400ng, seedM1m12, pruneScanLog, db: dbRef };
 }
 
 // ── Load sql.js from CDN ───────────────────────────────────────────────────

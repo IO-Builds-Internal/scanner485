@@ -26,12 +26,25 @@ export default function DeviceAdmin({ db, onDeviceSelect, selectedDeviceId }) {
     setTimeout(() => setMsg(null), 4000);
   };
 
-  const handleSeed = async () => {
+  const handleSeedEm = async () => {
     setSeeding(true);
     try {
       await db.seedEm6400ng();
       reload();
       showMsg('EM6400NG seeded successfully — 28 registers added.', 'ok');
+    } catch (e) {
+      showMsg(e.message, 'err');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  const handleSeedM1m12 = async () => {
+    setSeeding(true);
+    try {
+      await db.seedM1m12();
+      reload();
+      showMsg('M1M12 seeded successfully — 28 registers added.', 'ok');
     } catch (e) {
       showMsg(e.message, 'err');
     } finally {
@@ -85,9 +98,12 @@ export default function DeviceAdmin({ db, onDeviceSelect, selectedDeviceId }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
-      <div className="db-bar">
-        <button className="btn btn-primary btn-sm" onClick={handleSeed} disabled={seeding}>
+      <div className="db-bar" style={{ gap: 4 }}>
+        <button className="btn btn-primary btn-sm" onClick={handleSeedEm} disabled={seeding}>
           {seeding ? <><span className="spinner" /> Seeding…</> : 'Seed EM6400NG'}
+        </button>
+        <button className="btn btn-primary btn-sm" onClick={handleSeedM1m12} disabled={seeding}>
+          {seeding ? <><span className="spinner" /> Seeding…</> : 'Seed M1M12'}
         </button>
         <div className="toolbar-sep" />
         <button className="btn btn-default btn-sm" onClick={handleExport}>↓ Export .sqlite</button>
