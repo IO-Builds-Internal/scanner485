@@ -439,7 +439,7 @@ export default function App() {
         <div className="app-body">
           {/* Row 1: Connection + Device controls */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, flexShrink: 0 }}>
-            <PortSelector portStatus={portStatus} onStatusChange={handlePortStatus} />
+            <PortSelector db={db} portStatus={portStatus} onStatusChange={handlePortStatus} />
             <DevicePicker db={db} portStatus={portStatus} onScanChange={handleScanChange} />
           </div>
 
