@@ -5,8 +5,11 @@ const DATA_TYPES = [
   { value: 'uint16', label: '16-bit Unsigned Integer (uint16)' },
   { value: 'int16',  label: '16-bit Signed Integer (int16)' },
   { value: 'float32_be', label: '32-bit Float Big-Endian (float32_be)' },
-  { value: 'uint32_be', label: '32-bit Unsigned 32-bit (uint32_be)' },
-  { value: 'int32_be', label: '32-bit Signed 32-bit (int32_be)' },
+  { value: 'float32_le', label: '32-bit Float Swapped / Little-Endian (float32_le)' },
+  { value: 'uint32_be', label: '32-bit Unsigned Big-Endian (uint32_be)' },
+  { value: 'uint32_le', label: '32-bit Unsigned Swapped / Little-Endian (uint32_le)' },
+  { value: 'int32_be', label: '32-bit Signed Big-Endian (int32_be)' },
+  { value: 'int32_le', label: '32-bit Signed Swapped / Little-Endian (int32_le)' },
   { value: 'raw', label: 'Raw Words (comma-separated list for writing)' },
 ];
 
@@ -209,7 +212,11 @@ export default function ManualOperations({ portStatus }) {
               const type = e.target.value;
               setDataType(type);
               // Automatically adjust count depending on chosen type
-              if (type === 'float32_be' || type === 'uint32_be' || type === 'int32_be') {
+              if (
+                type === 'float32_be' || type === 'float32_le' ||
+                type === 'uint32_be' || type === 'uint32_le' ||
+                type === 'int32_be' || type === 'int32_le'
+              ) {
                 setCount(2);
               } else if (type === 'uint16' || type === 'int16') {
                 setCount(1);

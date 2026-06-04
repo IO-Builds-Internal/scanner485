@@ -1,5 +1,7 @@
 # scanner485 — RS-485 Modbus RTU Reader
 
+Developed by **IO Builds LLC** under **BBJSENSE**
+
 A premium, modern web dashboard for reading and diagnostic monitoring of RS-485/Modbus RTU power meters. It operates natively in modern browsers via the **Web Serial API** (Local Computer mode) or through a Socket.io node proxy (Remote Server mode).
 
 ---
