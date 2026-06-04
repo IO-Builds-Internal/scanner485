@@ -61,6 +61,7 @@ export default function App() {
   const [scanRegisters, setScanRegisters] = useState([]);
   const [readings,      setReadings]      = useState(new Map());
   
+  const [scanSlaveId,   setScanSlaveId]   = useState(1);
   const [activeTab,     setActiveTab]     = useState('values'); // 'values' | 'feed' | 'manual'
   const [feedEntries,   setFeedEntries]   = useState([]);
   
@@ -184,12 +185,15 @@ export default function App() {
 
   const [scanIntervalMs, setScanIntervalMs] = useState(1000);
 
-  const handleScanChange = useCallback((isScanning, device, registers, intervalMs) => {
+  const handleScanChange = useCallback((isScanning, device, registers, intervalMs, slaveId) => {
     setScanning(isScanning);
     setScanDevice(device);
     setScanRegisters(registers ?? []);
     if (intervalMs) {
       setScanIntervalMs(intervalMs);
+    }
+    if (slaveId !== undefined) {
+      setScanSlaveId(slaveId);
     }
     if (isScanning) {
       addLog(`Scan started — ${device?.name}, ${registers?.length} registers`, 'ok');
@@ -209,7 +213,7 @@ export default function App() {
     const runPoll = async () => {
       const allReadings = [];
       const blocks = groupIntoBlocks(scanRegisters);
-      const slaveId = portStatus.slaveId || 1;
+      const slaveId = scanSlaveId;
 
       for (const block of blocks) {
         if (!active) return;

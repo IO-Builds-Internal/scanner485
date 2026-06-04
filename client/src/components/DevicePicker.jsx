@@ -74,15 +74,16 @@ export default function DevicePicker({ db, portStatus, onScanChange }) {
     if (isLocalMode) {
       // Direct browser-side scanning, update parents with interval
       setScanning(true);
-      onScanChange(true, selectedDevice, regPayload, intervalMs);
+      onScanChange(true, selectedDevice, regPayload, intervalMs, slaveId);
     } else {
       // Remote server-side scanning
       emit('scan:start', {
         registers: regPayload,
         intervalMs,
+        slaveId,
       });
       setScanning(true);
-      onScanChange(true, selectedDevice, regPayload, intervalMs);
+      onScanChange(true, selectedDevice, regPayload, intervalMs, slaveId);
     }
   };
 
@@ -91,7 +92,7 @@ export default function DevicePicker({ db, portStatus, onScanChange }) {
       emit('scan:stop');
     }
     setScanning(false);
-    onScanChange(false, null, null);
+    onScanChange(false, null, null, null, 1);
   };
 
   const regCount = selectedDevice

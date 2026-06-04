@@ -68,7 +68,7 @@ export function registerSocketHandlers(io, socket) {
 
   // ── scan:start ────────────────────────────────────────────────────────────
   socket.on('scan:start', (payload) => {
-    const { registers = [], intervalMs = 5000 } = payload;
+    const { registers = [], intervalMs = 5000, slaveId = 1 } = payload;
 
     if (!registers.length) {
       socket.emit('scan:error', { code: 'NO_REGISTERS', message: 'No registers provided for scan.' });
@@ -86,6 +86,7 @@ export function registerSocketHandlers(io, socket) {
 
     const doScan = async () => {
       const allReadings = [];
+      setSlaveId(slaveId);
 
       for (const block of blocks) {
         try {
