@@ -50,6 +50,8 @@ export default function PortSelector({ db, portStatus, onStatusChange }) {
   const [autoDetectDeviceId, setAutoDetectDeviceId] = useState('');
   const [autoDetectSlaveId, setAutoDetectSlaveId] = useState(1);
   const [devices, setDevices] = useState([]);
+  const [customTestAddress, setCustomTestAddress] = useState(0);
+  const [customTestFc, setCustomTestFc] = useState(3);
 
   useEffect(() => {
     if (db?.ready) {
@@ -58,6 +60,9 @@ export default function PortSelector({ db, portStatus, onStatusChange }) {
       if (rows.length > 0) {
         setAutoDetectDeviceId(String(rows[0].id));
         setAutoDetectSlaveId(rows[0].slave_id || 1);
+      } else {
+        setAutoDetectDeviceId('not_listed');
+        setAutoDetectSlaveId(1);
       }
     }
   }, [db?.ready, db]);
@@ -200,7 +205,10 @@ export default function PortSelector({ db, portStatus, onStatusChange }) {
       // Determine test address and FC from selected device
       let testAddress = 2698;
       let testFc = 3;
-      if (autoDetectDeviceId && db?.ready) {
+      if (autoDetectDeviceId === 'not_listed') {
+        testAddress = customTestAddress;
+        testFc = customTestFc;
+      } else if (autoDetectDeviceId && db?.ready) {
         const regs = db.query(
           'SELECT address, function_code FROM registers WHERE device_id = ? ORDER BY address ASC LIMIT 1',
           [autoDetectDeviceId]
@@ -449,8 +457,36 @@ export default function PortSelector({ db, portStatus, onStatusChange }) {
                   {devices.map(d => (
                     <option key={d.id} value={d.id}>{d.name} ({d.manufacturer || 'Generic'})</option>
                   ))}
+                  <option value="not_listed">Not Listed / Custom</option>
                 </select>
               </div>
+              {autoDetectDeviceId === 'not_listed' && (
+                <>
+                  <div style={{ width: 110 }}>
+                    <span className="conn-label">Test Address</span>
+                    <input
+                      type="number"
+                      className="form-input w-full"
+                      min={0} max={65535}
+                      value={customTestAddress}
+                      onChange={e => setCustomTestAddress(Number(e.target.value))}
+                      disabled={detecting}
+                    />
+                  </div>
+                  <div style={{ width: 120 }}>
+                    <span className="conn-label">Test FC</span>
+                    <select
+                      className="form-select w-full"
+                      value={customTestFc}
+                      onChange={e => setCustomTestFc(Number(e.target.value))}
+                      disabled={detecting}
+                    >
+                      <option value={3}>FC 03 (Holding)</option>
+                      <option value={4}>FC 04 (Input)</option>
+                    </select>
+                  </div>
+                </>
+              )}
               <div style={{ width: 80 }}>
                 <span className="conn-label">Slave ID</span>
                 <input
