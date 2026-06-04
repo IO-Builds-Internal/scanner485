@@ -218,6 +218,9 @@ export default function App() {
       for (const block of blocks) {
         if (!active) return;
         try {
+          // Inter-packet spacing delay
+          await new Promise(resolve => setTimeout(resolve, 50));
+
           let rawWords;
           if (block.fc === 4) {
             rawWords = await readLocalInputRegisters(slaveId, block.startAddress, block.count);
@@ -231,6 +234,8 @@ export default function App() {
           console.error('[local scan] error:', err.message);
           addLog(`FC${block.fc} read at address ${block.startAddress} error: ${err.message}`, 'err');
           addToast(`Read Error — Address ${block.startAddress}: ${err.message}`, 'error');
+          // Recovery delay after a failure
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
 

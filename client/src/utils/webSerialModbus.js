@@ -140,7 +140,7 @@ export function isLocalPortOpen() {
 }
 
 // ── Modbus Transmit/Receive ──────────────────────────────────────────────────
-async function sendAndReceive(requestFrame, expectedLength, timeoutMs = 2000) {
+async function sendAndReceive(requestFrame, expectedLength, timeoutMs = 1000) {
   if (!activePort || !activePort.writable || !activePort.readable) {
     throw new Error('Local serial port is not open.');
   }
@@ -217,7 +217,7 @@ async function sendAndReceive(requestFrame, expectedLength, timeoutMs = 2000) {
 }
 
 // ── Modbus Queries ───────────────────────────────────────────────────────────
-export async function readLocalHoldingRegisters(slaveId, address, count, timeoutMs = 2000) {
+export async function readLocalHoldingRegisters(slaveId, address, count, timeoutMs = 1000) {
   const req = buildReadRequest(slaveId, 3, address, count);
   const resp = await sendAndReceive(req, 5 + count * 2, timeoutMs);
   const words = [];
@@ -227,7 +227,7 @@ export async function readLocalHoldingRegisters(slaveId, address, count, timeout
   return words;
 }
 
-export async function readLocalInputRegisters(slaveId, address, count, timeoutMs = 2000) {
+export async function readLocalInputRegisters(slaveId, address, count, timeoutMs = 1000) {
   const req = buildReadRequest(slaveId, 4, address, count);
   const resp = await sendAndReceive(req, 5 + count * 2, timeoutMs);
   const words = [];
@@ -403,7 +403,7 @@ export function groupIntoBlocks(registers) {
     return a.address - b.address;
   });
 
-  const MAX_BLOCK_REGISTERS = 16;
+  const MAX_BLOCK_REGISTERS = 8;
   const blocks = [];
   let current = null;
 

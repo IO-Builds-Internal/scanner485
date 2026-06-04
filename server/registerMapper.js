@@ -123,7 +123,7 @@ export function groupIntoBlocks(registers) {
     return a.address - b.address;
   });
 
-  const MAX_BLOCK_REGISTERS = 16;
+  const MAX_BLOCK_REGISTERS = 8;
   const blocks = [];
   let current = null;
 
