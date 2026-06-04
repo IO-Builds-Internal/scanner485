@@ -36,10 +36,22 @@ export default function DevicePicker({ db, portStatus, onScanChange }) {
   useEffect(() => {
     const unsub = on('scan:stopped', () => {
       setScanning(false);
-      onScanChange(false, null, null);
+      onScanChange(false, null, null, null, 1);
     });
     return unsub;
   }, [on, onScanChange]);
+
+  // Sync selected device and slave ID with portStatus when connected
+  useEffect(() => {
+    if (portStatus?.status === 'ok') {
+      if (portStatus.autoDetectedDeviceId) {
+        setSelectedDeviceId(String(portStatus.autoDetectedDeviceId));
+      }
+      if (portStatus.slaveId) {
+        setSlaveId(portStatus.slaveId);
+      }
+    }
+  }, [portStatus]);
 
   const selectedDevice = devices.find(d => String(d.id) === selectedDeviceId);
 
