@@ -15,10 +15,13 @@
  */
 export const REGISTER_WIDTHS = {
   float32_be: 2,
+  float32_le: 2,
   uint16: 1,
   int16: 1,
   uint32_be: 2,
+  uint32_le: 2,
   int32_be: 2,
+  int32_le: 2,
 };
 
 /**
@@ -36,16 +39,35 @@ export function decodeWords(words, dataType) {
       buf.writeUInt16BE(words[1], 2);
       return buf.readFloatBE(0);
     }
+    case 'float32_le': {
+      // low word first (word-swapped)
+      const buf = Buffer.alloc(4);
+      buf.writeUInt16BE(words[1], 0);
+      buf.writeUInt16BE(words[0], 2);
+      return buf.readFloatBE(0);
+    }
     case 'uint32_be': {
       const buf = Buffer.alloc(4);
       buf.writeUInt16BE(words[0], 0);
       buf.writeUInt16BE(words[1], 2);
       return buf.readUInt32BE(0);
     }
+    case 'uint32_le': {
+      const buf = Buffer.alloc(4);
+      buf.writeUInt16BE(words[1], 0);
+      buf.writeUInt16BE(words[0], 2);
+      return buf.readUInt32BE(0);
+    }
     case 'int32_be': {
       const buf = Buffer.alloc(4);
       buf.writeUInt16BE(words[0], 0);
       buf.writeUInt16BE(words[1], 2);
+      return buf.readInt32BE(0);
+    }
+    case 'int32_le': {
+      const buf = Buffer.alloc(4);
+      buf.writeUInt16BE(words[1], 0);
+      buf.writeUInt16BE(words[0], 2);
       return buf.readInt32BE(0);
     }
     case 'uint16':
@@ -168,15 +190,30 @@ export function encodeWords(value, dataType) {
       buf.writeFloatBE(Number(value), 0);
       return [buf.readUInt16BE(0), buf.readUInt16BE(2)];
     }
+    case 'float32_le': {
+      const buf = Buffer.alloc(4);
+      buf.writeFloatBE(Number(value), 0);
+      return [buf.readUInt16BE(2), buf.readUInt16BE(0)];
+    }
     case 'uint32_be': {
       const buf = Buffer.alloc(4);
       buf.writeUInt32BE(Number(value), 0);
       return [buf.readUInt16BE(0), buf.readUInt16BE(2)];
     }
+    case 'uint32_le': {
+      const buf = Buffer.alloc(4);
+      buf.writeUInt32BE(Number(value), 0);
+      return [buf.readUInt16BE(2), buf.readUInt16BE(0)];
+    }
     case 'int32_be': {
       const buf = Buffer.alloc(4);
       buf.writeInt32BE(Number(value), 0);
       return [buf.readUInt16BE(0), buf.readUInt16BE(2)];
+    }
+    case 'int32_le': {
+      const buf = Buffer.alloc(4);
+      buf.writeInt32BE(Number(value), 0);
+      return [buf.readUInt16BE(2), buf.readUInt16BE(0)];
     }
     case 'uint16': {
       const v = Math.max(0, Math.min(0xffff, Math.round(Number(value))));

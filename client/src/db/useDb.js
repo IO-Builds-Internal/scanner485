@@ -108,6 +108,14 @@ export function useDb() {
           }
         }
 
+        // Auto-migrate M1M12 registers to float32_le and uint32_le if they are still float32_be
+        try {
+          db.run("UPDATE registers SET data_type = 'float32_le' WHERE data_type = 'float32_be' AND device_id IN (SELECT id FROM devices WHERE name = 'M1M12')");
+          db.run("UPDATE registers SET data_type = 'uint32_le' WHERE data_type = 'uint32_be' AND device_id IN (SELECT id FROM devices WHERE name = 'M1M12')");
+        } catch (err) {
+          console.error('[db] M1M12 registers migration failed:', err);
+        }
+
         // Auto-seed EM6400NG and M1M12 devices if they don't exist
         const checkDevice = (name) => {
           const stmtCheck = db.prepare('SELECT COUNT(*) as cnt FROM devices WHERE name = ?');

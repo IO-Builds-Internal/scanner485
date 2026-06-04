@@ -8,10 +8,13 @@ let activePort = null;
 
 export const REGISTER_WIDTHS = {
   float32_be: 2,
+  float32_le: 2,
   uint16: 1,
   int16: 1,
   uint32_be: 2,
+  uint32_le: 2,
   int32_be: 2,
+  int32_le: 2,
 };
 
 // ── Modbus Exception Messages ────────────────────────────────────────────────
@@ -308,14 +311,29 @@ export function decodeWords(words, dataType) {
     view.setUint16(2, words[1], false);
     return view.getFloat32(0, false);
   }
+  if (dataType === 'float32_le') {
+    view.setUint16(0, words[1], false);
+    view.setUint16(2, words[0], false);
+    return view.getFloat32(0, false);
+  }
   if (dataType === 'uint32_be') {
     view.setUint16(0, words[0], false);
     view.setUint16(2, words[1], false);
     return view.getUint32(0, false);
   }
+  if (dataType === 'uint32_le') {
+    view.setUint16(0, words[1], false);
+    view.setUint16(2, words[0], false);
+    return view.getUint32(0, false);
+  }
   if (dataType === 'int32_be') {
     view.setUint16(0, words[0], false);
     view.setUint16(2, words[1], false);
+    return view.getInt32(0, false);
+  }
+  if (dataType === 'int32_le') {
+    view.setUint16(0, words[1], false);
+    view.setUint16(2, words[0], false);
     return view.getInt32(0, false);
   }
   if (dataType === 'uint16') {
@@ -335,13 +353,25 @@ export function encodeWords(value, dataType) {
     view.setFloat32(0, Number(value), false);
     return [view.getUint16(0, false), view.getUint16(2, false)];
   }
+  if (dataType === 'float32_le') {
+    view.setFloat32(0, Number(value), false);
+    return [view.getUint16(2, false), view.getUint16(0, false)];
+  }
   if (dataType === 'uint32_be') {
     view.setUint32(0, Number(value), false);
     return [view.getUint16(0, false), view.getUint16(2, false)];
   }
+  if (dataType === 'uint32_le') {
+    view.setUint32(0, Number(value), false);
+    return [view.getUint16(2, false), view.getUint16(0, false)];
+  }
   if (dataType === 'int32_be') {
     view.setInt32(0, Number(value), false);
     return [view.getUint16(0, false), view.getUint16(2, false)];
+  }
+  if (dataType === 'int32_le') {
+    view.setInt32(0, Number(value), false);
+    return [view.getUint16(2, false), view.getUint16(0, false)];
   }
   if (dataType === 'uint16') {
     const v = Math.max(0, Math.min(0xffff, Math.round(Number(value))));
