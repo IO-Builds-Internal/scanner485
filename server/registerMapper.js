@@ -123,6 +123,7 @@ export function groupIntoBlocks(registers) {
     return a.address - b.address;
   });
 
+  const MAX_BLOCK_REGISTERS = 16;
   const blocks = [];
   let current = null;
 
@@ -133,7 +134,8 @@ export function groupIntoBlocks(registers) {
     if (
       !current ||
       current.fc !== reg.function_code ||
-      reg.address > current.startAddress + current.count
+      reg.address > current.startAddress + current.count ||
+      (endAddress - current.startAddress) > MAX_BLOCK_REGISTERS
     ) {
       // Start a new block
       current = {
